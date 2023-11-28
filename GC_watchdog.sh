@@ -6,7 +6,7 @@
 #adb push GC_watchdog_NoScreen.sh /sdcard/GC_watchdog.sh
 #adb shell
 #su
-#rm /data/adb/service.d/*.sh; mv /sdcard/GC_watchdog.sh /data/adb/service.d/GC_watchdog.sh && chmod 777 /data/adb/service.d/GC_watchdog.sh && chown 0.0 /data/adb/service.d/GC_watchdog.sh
+#rm /data/adb/service.d/*.sh; mv /sdcard/GC_watchdog.sh /data/adb/service.d/GC_watchdog.sh && chmod 777 /data/adb/service.d/GC_watchdog.sh && chown 0.0 /data/adb/service.d/GC_watchdog.sh; reboot
 #Then simply reboot your device
 
 #enable this for debugging through adb if you want by uncomenting the line and running '/data/adb/service.d/GC_watchdog.sh' from shell
@@ -16,18 +16,22 @@
 
 ######FUNCTIONS######
 gc_restart() {
+	su -c "am force-stop ss.proximityservice"
+	sleep 2
 	su -c "am force-stop com.nianticlabs.pokemongo"
 	su -c "am force-stop com.gocheats.launcher"
-	sleep 1
+	sleep 2
 	su -c "monkey -p com.gocheats.launcher 1"
-	if [[ $(getenforce) == "Permissive" ]]; then
-		echo "- Device is Permissive, setting Enforce to 1" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
-		echo "- Device is Permissive, setting Enforce to 1"
-		sleep 5
-		su -c 'setenforce 1'
-	else
-		echo "- Device is Not Permissive, Continuing" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
-		echo "- Device is Not Permissive, Continuing"
+	if [[ "$hostname" == "S9" ]]; then
+		if [[ $(getenforce) == "Permissive" ]]; then
+			echo "- Device is Permissive, setting Enforce to 1" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
+			echo "- Device is Permissive, setting Enforce to 1"
+			sleep 5
+			su -c 'setenforce 1'
+		else
+			echo "- Device is Not Permissive, Continuing" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
+			echo "- Device is Not Permissive, Continuing"
+		fi
 	fi
 	sleep 30
 }
@@ -59,10 +63,9 @@ capture_regular_logcats() {
 while [ "$(getprop sys.boot_completed)" != 1 ]; do
 	sleep 1
 done
-sleep 5
+sleep 120
 echo "Device has booted"
 su -c "monkey -p ss.proximityservice 1"
-#routerIP=$(getprop net.dns1)
 hostname=$(su -c "awk -F'\"' '/device_name/ {print \$4}' /data/local/tmp/config.json")
 WORKERS_COUNT=$(awk -F'[:,]' '/"workers_count"/{print $2}' /data/local/tmp/config.json | tr -d '[:space:]')
 echo "$WORKERS_COUNT"
@@ -70,40 +73,34 @@ TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
 LOG_FILE_PREFIX="${hostname}_script"
 echo "Leggo" > /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 if ! pgrep -f "$APP_PACKAGE_NAME" >/dev/null; then
+	echo "Restarting GC" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
+	echo "Restarting GC"
 	gc_restart
-	sleep 10
 fi
 
-#echo "This is my hostname: $hostname"
-#su -c "hostname $hostname"
-#su -c "setprop net.hostname $hostname"
-#su -c "setprop net.bt.name $hostname"
-#su -c "settings put system device_name $hostname"
-#su -c "settings put global device_name $hostname"
-#su -c "setprop persist.usb.serialno $hostname"
-#su -c "settings put secure bluetooth_name $hostname"
-#su -c "settings put global synced_account_name $hostname"
-#su -c "setprop service.adb.tcp.port 5555"
-
-
+echo "Removing pid" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
+echo "Removing pid"
 
 rm /sdcard/pid-*.txt
 script_pid=`echo $$`
 echo $script_pid > /sdcard/pid-$script_pid.txt
 su -c "echo -900 >> /proc/$script_pid/oom_score_adj"
 
+echo "Setting launcher_pid" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 launcher_pid=$(pidof com.gocheats.launcher)
 echo $launcher_pid > /sdcard/pid-$launcher_pid.txt
 su -c 'echo -900 >> /proc/'$launcher_pid'/oom_score_adj'
 
+echo "Setting launcher2_pid" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 launcher2_pid=$(pidof ss.proximityservice)
-echo $launcher_pid > /sdcard/pid-$launcher_pid.txt
-su -c 'echo -900 >> /proc/'$launcher_pid'/oom_score_adj'
+echo $launcher2_pid > /sdcard/pid-$launcher2_pid.txt
+su -c 'echo -900 >> /proc/'$launcher2_pid'/oom_score_adj'
 
 su -c "renice -n -15 $launcher_pid"
-su -c "renice -n -15 $launcher2_pid"
+su -c "renice -n -13 $launcher2_pid"
 su -c "renice -n -14 $script_pid"
 
+echo "Making Directories" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 mkdir /sdcard/Logs
 mkdir /sdcard/Logs/Exeggcute
 mkdir /sdcard/Logs/ScriptLogs
@@ -166,7 +163,9 @@ while true; do
 				if [[ "$NUMBER_OF_WORKERS" -lt "$WORKERS_COUNT" ]]; then
 					echo "- There are $NUMBER_OF_WORKERS workers, waiting 60 seconds" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 					echo "- There are $NUMBER_OF_WORKERS workers, waiting 60 seconds"
+					su -c "monkey -p ss.proximityservice 1"
 					sleep 60
+					su -c "am force-stop ss.proximityservice"
 					NUMBER_OF_WORKERS=$(netstat -t | grep -c '7070.*ESTABLISHED'); ((NUMBER_OF_WORKERS--))
 					if [[ "$NUMBER_OF_WORKERS" -lt "$WORKERS_COUNT" ]]; then
 						((WORKERRETRIES++))
@@ -180,7 +179,9 @@ while true; do
 							echo "- - There are still not enough workers, Waiting 15m then trying again"
 							su -c "am force-stop com.nianticlabs.pokemongo"
 							su -c "am force-stop com.gocheats.launcher"
+							su -c "monkey -p ss.proximityservice 1"
 							sleep 900
+							su -c "am force-stop ss.proximityservice"
 							echo "- - - Done waiting, trying again" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 							echo "- - - Done waiting, trying again"
 							gc_restart
@@ -200,6 +201,7 @@ while true; do
 	done
 	echo "Device appears to be online, waiting 10 Minutes" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 	echo "Device appears to be online, waiting 10 Minutes"
+	su -c "monkey -p ss.proximityservice 1"
 	sleep 600
 	capture_regular_logcats
 done
