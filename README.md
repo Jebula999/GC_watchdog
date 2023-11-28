@@ -11,4 +11,5 @@ Run the bellow commands to install through adb
 Then simply reboot your device
 
 If you would like to watch the script, simply run ``/data/adb/service.d/GC_watchdog.sh`` while in shell.
+
 You can also get more details about what's being executed by uncommenting ``#set -x``
