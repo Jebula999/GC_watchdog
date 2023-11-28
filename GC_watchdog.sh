@@ -22,18 +22,11 @@ gc_restart() {
 	su -c "am force-stop com.gocheats.launcher"
 	sleep 2
 	su -c "monkey -p com.gocheats.launcher 1"
+	sleep 5
 	if [[ "$hostname" == "S9" ]]; then
-		if [[ $(getenforce) == "Permissive" ]]; then
-			echo "- Device is Permissive, setting Enforce to 1" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
-			echo "- Device is Permissive, setting Enforce to 1"
-			sleep 5
-			su -c 'setenforce 1'
-		else
-			echo "- Device is Not Permissive, Continuing" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
-			echo "- Device is Not Permissive, Continuing"
-		fi
+		su -c "setenforce 1"
 	fi
-	sleep 30
+	sleep 15
 }
 
 capture_logs_gc() {
@@ -63,20 +56,15 @@ capture_regular_logcats() {
 while [ "$(getprop sys.boot_completed)" != 1 ]; do
 	sleep 1
 done
-sleep 120
+sleep 10
 echo "Device has booted"
-su -c "monkey -p ss.proximityservice 1"
 hostname=$(su -c "awk -F'\"' '/device_name/ {print \$4}' /data/local/tmp/config.json")
 WORKERS_COUNT=$(awk -F'[:,]' '/"workers_count"/{print $2}' /data/local/tmp/config.json | tr -d '[:space:]')
 echo "$WORKERS_COUNT"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
 LOG_FILE_PREFIX="${hostname}_script"
 echo "Leggo" > /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
-if ! pgrep -f "$APP_PACKAGE_NAME" >/dev/null; then
-	echo "Restarting GC" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
-	echo "Restarting GC"
-	gc_restart
-fi
+
 
 echo "Removing pid" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 echo "Removing pid"
@@ -96,10 +84,6 @@ launcher2_pid=$(pidof ss.proximityservice)
 echo $launcher2_pid > /sdcard/pid-$launcher2_pid.txt
 su -c 'echo -900 >> /proc/'$launcher2_pid'/oom_score_adj'
 
-su -c "renice -n -15 $launcher_pid"
-su -c "renice -n -13 $launcher2_pid"
-su -c "renice -n -14 $script_pid"
-
 echo "Making Directories" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 mkdir /sdcard/Logs
 mkdir /sdcard/Logs/Exeggcute
@@ -111,7 +95,10 @@ POGO_PACKAGE_NAME=com.nianticlabs.pokemongo
 NUMBER_OF_WORKERS=0
 su -c 'logcat -P ""'
 
+gc_restart
+
 while true; do
+	su -c "am force-stop ss.proximityservice"
 	find /sdcard/Logs/Logcats -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
 	find /sdcard/Logs/CrashLogcats -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
 	find /sdcard/Logs/Exeggcute -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
@@ -121,6 +108,8 @@ while true; do
 	WORKERRETRIES=0
 	GCRETRIES=0
 	while true; do
+		echo "Checking if GC is running" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
+		echo "Checking if GC is running"
 		if ! pgrep -f "$APP_PACKAGE_NAME" >/dev/null; then
 			((GCRETRIES++))
 			if [[ "$GCRETRIES" -lt 5 ]]; then
@@ -140,6 +129,8 @@ while true; do
 			echo "- GC is running" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 			echo "- GC is running"
 			GCRETRIES=0
+			echo "Checking if PokemonGo is running" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
+			echo "Checking if PokemonGo is running"
 			if ! pgrep -f "$POGO_PACKAGE_NAME" >/dev/null; then
 				echo "- PokemonGo isn't running, Closing PokemonGo and waiting 30s" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 				echo "- PokemonGo isn't running, Closing PokemonGo and waiting 30s"
@@ -163,7 +154,7 @@ while true; do
 				if [[ "$NUMBER_OF_WORKERS" -lt "$WORKERS_COUNT" ]]; then
 					echo "- There are $NUMBER_OF_WORKERS workers, waiting 60 seconds" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 					echo "- There are $NUMBER_OF_WORKERS workers, waiting 60 seconds"
-					su -c "monkey -p ss.proximityservice 1"
+					su -c "am start -n ss.proximityservice/.StartActivity"
 					sleep 60
 					su -c "am force-stop ss.proximityservice"
 					NUMBER_OF_WORKERS=$(netstat -t | grep -c '7070.*ESTABLISHED'); ((NUMBER_OF_WORKERS--))
@@ -179,7 +170,7 @@ while true; do
 							echo "- - There are still not enough workers, Waiting 15m then trying again"
 							su -c "am force-stop com.nianticlabs.pokemongo"
 							su -c "am force-stop com.gocheats.launcher"
-							su -c "monkey -p ss.proximityservice 1"
+							su -c "am start -n ss.proximityservice/.StartActivity"
 							sleep 900
 							su -c "am force-stop ss.proximityservice"
 							echo "- - - Done waiting, trying again" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
@@ -201,7 +192,7 @@ while true; do
 	done
 	echo "Device appears to be online, waiting 10 Minutes" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 	echo "Device appears to be online, waiting 10 Minutes"
-	su -c "monkey -p ss.proximityservice 1"
+	su -c "am start -n ss.proximityservice/.StartActivity"
 	sleep 600
 	capture_regular_logcats
 done
