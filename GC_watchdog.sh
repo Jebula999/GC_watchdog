@@ -3,7 +3,7 @@
 
 ######INSTALLATION######
 #Run the bellow commands to install through adb
-#adb push GC_watchdog_NoScreen.sh /sdcard/GC_watchdog.sh
+#adb push GC_watchdog.sh /sdcard/GC_watchdog.sh
 #adb shell
 #su
 #rm /data/adb/service.d/*.sh; mv /sdcard/GC_watchdog.sh /data/adb/service.d/GC_watchdog.sh && chmod 777 /data/adb/service.d/GC_watchdog.sh && chown 0.0 /data/adb/service.d/GC_watchdog.sh; reboot
@@ -29,28 +29,28 @@ gc_restart() {
 	sleep 15
 }
 
-capture_logs_gc() {
-	time=$(date +"%Y-%m-%d_%H-%M-%S")
-	logcat -d > /sdcard/Logs/CrashLogcats/${hostname}_gc_logcat_$time.txt
-	logcat -d -s "Exeggcute" > /sdcard/Logs/Exeggcute/${hostname}_gc_exeggcute_logcat_$time.txt
-}
-
-capture_logs_worker() {
-	time=$(date +"%Y-%m-%d_%H-%M-%S")
-	logcat -d > /sdcard/Logs/CrashLogcats/${hostname}_worker_logcat_$time.txt
-	logcat -d -s "Exeggcute" > /sdcard/Logs/Exeggcute/${hostname}_worker_exeggcute_logcat_$time.txt
-}
-
-capture_logs_pokemon() {
-	time=$(date +"%Y-%m-%d_%H-%M-%S")
-	logcat -d > /sdcard/Logs/CrashLogcats/${hostname}_pokemon_logcat_$time.txt
-	logcat -d -s "Exeggcute" > /sdcard/Logs/Exeggcute/${hostname}_pokemon_exeggcute_logcat_$time.txt
-}
-
-capture_regular_logcats() {
-	time=$(date +"%Y-%m-%d_%H-%M-%S")
-	logcat -d > /sdcard/Logs/Logcats/${hostname}_regular_logcat_$time.txt
-}
+#capture_logs_gc() {
+#	time=$(date +"%Y-%m-%d_%H-%M-%S")
+#	logcat -d > /sdcard/Logs/CrashLogcats/${hostname}_gc_logcat_$time.txt
+#	logcat -d -s "Exeggcute" > /sdcard/Logs/Exeggcute/${hostname}_gc_exeggcute_logcat_$time.txt
+#}
+#
+#capture_logs_worker() {
+#	time=$(date +"%Y-%m-%d_%H-%M-%S")
+#	logcat -d > /sdcard/Logs/CrashLogcats/${hostname}_worker_logcat_$time.txt
+#	logcat -d -s "Exeggcute" > /sdcard/Logs/Exeggcute/${hostname}_worker_exeggcute_logcat_$time.txt
+#}
+#
+#capture_logs_pokemon() {
+#	time=$(date +"%Y-%m-%d_%H-%M-%S")
+#	logcat -d > /sdcard/Logs/CrashLogcats/${hostname}_pokemon_logcat_$time.txt
+#	logcat -d -s "Exeggcute" > /sdcard/Logs/Exeggcute/${hostname}_pokemon_exeggcute_logcat_$time.txt
+#}
+#
+#capture_regular_logcats() {
+#	time=$(date +"%Y-%m-%d_%H-%M-%S")
+#	logcat -d > /sdcard/Logs/Logcats/${hostname}_regular_logcat_$time.txt
+#}
 
 ######MAIN SCRIPT######
 while [ "$(getprop sys.boot_completed)" != 1 ]; do
@@ -85,11 +85,11 @@ echo $launcher2_pid > /sdcard/pid-$launcher2_pid.txt
 su -c 'echo -900 >> /proc/'$launcher2_pid'/oom_score_adj'
 
 echo "Making Directories" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
-mkdir /sdcard/Logs
-mkdir /sdcard/Logs/Exeggcute
-mkdir /sdcard/Logs/ScriptLogs
-mkdir /sdcard/Logs/Logcats
-mkdir /sdcard/Logs/CrashLogcats
+#mkdir /sdcard/Logs
+#mkdir /sdcard/Logs/Exeggcute
+#mkdir /sdcard/Logs/ScriptLogs
+#mkdir /sdcard/Logs/Logcats
+#mkdir /sdcard/Logs/CrashLogcats
 APP_PACKAGE_NAME=com.gocheats.launcher
 POGO_PACKAGE_NAME=com.nianticlabs.pokemongo
 NUMBER_OF_WORKERS=0
@@ -99,10 +99,10 @@ gc_restart
 
 while true; do
 	su -c "am force-stop ss.proximityservice"
-	find /sdcard/Logs/Logcats -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
-	find /sdcard/Logs/CrashLogcats -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
-	find /sdcard/Logs/Exeggcute -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
-	find /sdcard/Logs/ScriptLogs -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
+	#find /sdcard/Logs/Logcats -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
+	#find /sdcard/Logs/CrashLogcats -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
+	#find /sdcard/Logs/Exeggcute -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
+	#find /sdcard/Logs/ScriptLogs -type f -printf '%T@ %p\n' | sort -n | awk 'NR>20 {print $2}' | while read -r file; do rm -- "$file"; done
 	time=$(date +"%Y-%m-%d_%H-%M-%S")
 	echo "$time" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 	WORKERRETRIES=0
@@ -115,7 +115,7 @@ while true; do
 			if [[ "$GCRETRIES" -lt 5 ]]; then
 				echo "- GC isn't running, Restarting GC, attempt $GCRETRIES" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 				echo "- GC isn't running, Restarting GC, attempt $GCRETRIES"
-				capture_logs_gc
+				#capture_logs_gc
 				gc_restart
 			else
 				echo "- GC still isn't running on attempt $GCRETRIES, Waiting 15m then trying again" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
@@ -139,7 +139,7 @@ while true; do
 				if ! pgrep -f "$POGO_PACKAGE_NAME" >/dev/null; then
 					echo "- - PokemonGo still isn't running, Restarting GC" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 					echo "- - PokemonGo still isn't running, Restarting GC"
-					capture_logs_pokemon
+					#capture_logs_pokemon
 					gc_restart
 				else
 					echo "- - PokemonGo is running again" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
@@ -163,7 +163,7 @@ while true; do
 						if [[ "$WORKERRETRIES" -lt 5 ]]; then
 							echo "- - There are now $NUMBER_OF_WORKERS workers, restarting GC, Attempt $NUMBER_OF_WORKERS" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
 							echo "- - There are now $NUMBER_OF_WORKERS workers, restarting GC, Attempt $NUMBER_OF_WORKERS"
-							capture_logs_worker
+							#capture_logs_worker
 							gc_restart
 						else
 							echo "- - There are still not enough workers, Waiting 15m then trying again" >> /sdcard/Logs/ScriptLogs/${LOG_FILE_PREFIX}_${TIMESTAMP}.txt
@@ -194,5 +194,5 @@ while true; do
 	echo "Device appears to be online, waiting 10 Minutes"
 	su -c "am start -n ss.proximityservice/.StartActivity"
 	sleep 600
-	capture_regular_logcats
+	#capture_regular_logcats
 done
